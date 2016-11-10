@@ -1,0 +1,16 @@
+#inherit_from: ../.rubocop.yml
+
+AllCops:
+  UseCache: false
+
+Style/Encoding:
+  Enabled: false
+
+# Metrics/LineLength:
+#   Max: 99
+
+Metrics/MethodLength:
+  Max: 15
+
+Style/HashSyntax:
+  Enabled: false
