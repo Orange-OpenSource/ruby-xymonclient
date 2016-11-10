@@ -9,32 +9,62 @@ module XymonClient
 
     def initialize(config)
       raise InvalidServiceItemName if config.fetch('label', '') == ''
-      raise InvalidServiceItemType if config.fetch('type', '') == ''
       @info = {
         'label' => config['label'],
         'type' => config['type'],
         'description' => config.fetch('description', ''),
         'enabled' => config.fetch('enabled', true),
-        'nan_status' => config.fetch('nan_status', 'green'),
-        'threshold' => config.fetch('threshold', {}),
         'status' => 'purple'
       }
     end
 
     def value=(value)
       @info['value'] = value
-      case @info['type']
-      when 'gauge'
-        @info['status'] = _get_status_gauge(value)
-      when 'string'
-        @info['status'] = _get_status_string(value)
-      end
+      status
+    end
+
+    def status
+      @info['status'] = \
+        if !@info['enabled']
+          'clear'
+        elsif XymonClient::Client.valid_status?(@info['value'])
+          @info['value']
+        else
+          'red'
+        end
+    end
+  end
+
+  ##
+  class ServiceItemGauge < ServiceItem
+    def initialize(config)
+      super(config)
+      @info['threshold'] = config.fetch('threshold', {})
+      @info['nan_status'] = config.fetch('nan_status', 'green')
+    end
+
+    def status
+      @info['status'] = \
+        if !@info['enabled']
+          'clear'
+        elsif value.instance_of?(Float) && value.nan?
+          @info['threshold'].fetch('nan_status', 'red')
+        elsif @info['threshold'].key?('critical') && \
+              _threshold_reached?('critical')
+          'red'
+        elsif @info['threshold'].key?('warning') && \
+              _threshold_reached?('warning')
+          'yellow'
+        else
+          'green'
+        end
     end
 
     private
 
-    def _threshold_reached?(value, threshold, order)
-      case order
+    def _threshold_reached?(threshold)
+      value = @info['value']
+      case @info['threshold'].fetch('order', '<')
       when '<'
         value < threshold
       when '>'
@@ -45,50 +75,43 @@ module XymonClient
         value >= threshold
       end
     end
+  end
 
-    def _get_status_gauge(value)
-      return 'clear' unless @info['enabled']
-      return @info['threshold'].fetch('nan_status', 'red') \
-        if value.instance_of?(Float) && value.nan?
-      order = @info['threshold'].fetch('order', '<')
-      if @info['threshold'].key?('critical')
-        if _threshold_reached?(value, @info['threshold']['critical'], order)
-          'red'
-        elsif @info['threshold'].key?('warning') && \
-              _threshold_reached?(value, @info['threshold']['warning'], order)
-          'yellow'
-        else
-          'green'
-        end
-      elsif @info['threshold'].key?('warning') && \
-            _threshold_reached?(value, @info['threshold']['warning'], order)
-        'yellow'
-      else
-        'green'
-      end
+  ##
+  class ServiceItemString < ServiceItem
+    def initialize(config)
+      super(config)
+      @info['threshold'] = config.fetch('threshold', {})
     end
 
-    def _get_status_string(values)
-      return 'clear' unless @info['enabled']
-      inclusive = @info['threshold'].fetch('inclusive', true)
-      if @info['threshold'].key?('critical')
-        if (inclusive && values.any? { |value| @info['threshold']['critical'].include?(value) }) || \
-           (!inclusive && !values.any? { |value| @info['threshold']['critical'].include?(value) })
+    def status
+      @info['status'] = \
+        if !@info['enabled']
+          'clear'
+        elsif @info['threshold'].key?('critical') && \
+              _string_threshold_reached?('critical')
           'red'
         elsif @info['threshold'].key?('warning') && \
-              ((inclusive && values.any? { |value| @info['threshold']['warning'].include?(value) }) || \
-              (!inclusive && !values.any? { |value| @info['threshold']['warning'].include?(value) }))
+              _string_threshold_reached?('warning')
           'yellow'
         else
           'green'
         end
-      elsif @info['threshold'].key?('warning') && \
-            ((inclusive && values.any? { |value| @info['threshold']['warning'].include?(value) }) || \
-            (!inclusive && !values.any? { |value| @info['threshold']['warning'].include?(value) }))
-        'yellow'
+    end
+
+    private
+
+    def _threshold_reached?(threshold)
+      inclusive = @info['threshold'].fetch('inclusive', true)
+      values = @info['value']
+      if values.instance_of?(Array)
+        value_is_included = values.any? do |value|
+          @info['threshold'][threshold].include?(value)
+        end
       else
-        'green'
+        value_is_included = @info['threshold'][threshold].include?(values)
       end
+      (inclusive && value_is_included) || (!inclusive && !value_is_included)
     end
   end
 end

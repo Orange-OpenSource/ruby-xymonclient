@@ -33,7 +33,8 @@ module XymonClient
     # rubocop:enable LineLength
 
     def initialize(client, config)
-      raise NotXymonClientInstance unless client.instance_of?(XymonClient::Client)
+      raise NotXymonClientInstance \
+        unless client.instance_of?(XymonClient::Client)
       @client = client
       @info = { 'items' => {} }
       update_config(config)
@@ -96,6 +97,17 @@ module XymonClient
 
     private
 
+    def _create_serviceitem(config)
+      case config.fetch('type', '')
+      when 'gauge'
+        ServiceItemGauge.new(config)
+      when 'string'
+        ServiceItemString.new(config)
+      else
+        ServiceItem.new(config)
+      end
+    end
+
     def _update_items_config(config)
       # cleanup old items and update old items
       @info['items'].keep_if { |key, _value| config.fetch('items').key?(key) }
@@ -104,7 +116,7 @@ module XymonClient
       end
       # add new items
       config['items'].each do |item_name, item_config|
-        @info['items'][item_name] = ServiceItem.new(item_config)
+        @info['items'][item_name] = _create_serviceitem(item_config)
       end
     end
   end
