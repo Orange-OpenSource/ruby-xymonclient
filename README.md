@@ -9,7 +9,7 @@ Features:
  * Send status
  * Ack
  * Enable/Disable
- * Helper Class 'Service' for building a sensor easily
+ * Helper Class 'Service' for building sensors easily
 
 ## Installation
 
@@ -29,7 +29,49 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+### Basic usage
+```ruby
+require 'xymonclient'
+
+client = XymonClient::Client.new(['localhost:1984'])
+client.status('myhost', 'service1', 'green', 'additional data')
+
+```
+
+### Service wrapper
+```ruby
+require 'xymonclient/service'
+
+service = XymonClient::Service.new(['localhost:1984'],
+  'name' => 'service1',
+  'host' => 'myhost',
+  'header' => 'A sample header',
+  'footer' => 'A sample footer',
+  'items' => {
+    'ITEM1' => {
+      'label' => 'Gauge Item 1',
+      'type' => 'gauge',
+      'threshold' => {
+        'order' => '<',
+        'critical' => 5,
+        'warning' => 10,
+        'nan_status' => 'red'
+      }
+    },
+    'ITEM2' => {
+      'label' => 'String Item 2',
+      'type' => 'string',
+      'threshold' => {
+        'inclusive' => false,
+        'critical' => ['all is Ok !']
+      }
+    }
+  }
+)
+service.update_item('ITEM1', 3)
+service.update_item('ITEM2', 'all is Ok !')
+service.status
+```
 
 ## Development
 

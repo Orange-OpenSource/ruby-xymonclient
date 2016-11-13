@@ -1,6 +1,7 @@
 require 'xymonclient/version'
 require 'xymonclient/exception'
 require 'xymonclient/discovery'
+require 'xymonclient/helpers'
 require 'socket'
 
 module XymonClient
@@ -22,56 +23,69 @@ module XymonClient
     end
 
     def status(host, service, status, message, lifetime = '30m')
-      raise XymonClient::InvalidDuration, lifetime unless valid_duration?(lifetime)
-      raise XymonClient::InvalidStatus, status unless valid_status?(status)
-      _send("status+#{lifetime} #{hostsvc(host, service)} #{status} #{message}")
+      raise XymonClient::InvalidDuration, lifetime \
+        unless XymonClient.valid_duration?(lifetime)
+      raise XymonClient::InvalidStatus, status \
+        unless XymonClient.valid_status?(status)
+      _send_to_all(
+        "status+#{lifetime} " \
+        "#{XymonClient.hostsvc(host, service)} #{status} #{message}"
+      )
     end
 
     def disable(host, service, duration, message)
-      raise XymonClient::InvalidDuration, duration unless valid_duration?(duration)
-      _send("disable #{hostsvc(host, service)} #{duration} #{message}")
+      raise XymonClient::InvalidDuration, duration \
+        unless XymonClient.valid_duration?(duration)
+      _send_to_all(
+        "disable #{XymonClient.hostsvc(host, service)} #{duration} #{message}"
+      )
     end
 
     def enable(host, service)
-      _send("enable #{hostsvc(host, service)}")
+      _send_to_all("enable #{XymonClient.hostsvc(host, service)}")
+    end
+
+    def drop(host, service = '')
+      _send_to_all("drop #{host} #{service}")
+    end
+
+    def board(host, service, fields = [])
+      response = {}
+      @servers.each do |server|
+        response[server] = _send(
+          server,
+          "xymondboard host=#{host} test=#{service} fields=#{fields.join(';')}"
+        )
+      end
+      response
     end
 
     def ack(host, service, duration, message)
-      raise XymonClient::InvalidDuration, duration unless valid_duration?(duration)
-      cookie = _send(
-        "xymondboard host=#{host} test=#{service} fields=cookie"
-      ).to_i
-      _send("xymondack #{cookie} #{duration} #{message}") if cookie.nonzero?
-    end
-
-    def hostsvc(host, service)
-      raise XymonClient::InvalidHost, host if host == ''
-      raise XymonClient::InvalidService, service if service == ''
-      host.tr('.', ',') + '.' + service
-    end
-
-    def valid_status?(status)
-      %w(green yellow red purple blue clear).include?(status)
-    end
-
-    def valid_duration?(duration)
-      duration =~ /^[0-9]+[hmwd]?$/
+      raise XymonClient::InvalidDuration, duration \
+        unless XymonClient.valid_duration?(duration)
+      cookies = board(host, service, ['cookie'])
+      @servers.each do |server|
+        _send(
+          server,
+          "xymondack #{cookies[server].to_i} #{duration} #{message}"
+        ) if cookies[server].to_i != -1
+      end
     end
 
     private
 
-    def _send(message)
+    def _send_to_all(message)
+      @servers.each { |server| _send(server, message) }
+    end
+
+    def _send(server, message)
       # TODO: validate response from all servers ( and retry ?)
-      @servers.each do |server|
-        begin
-          socket = TCPSocket.open(server[:host], server[:port])
-          socket.puts message
-          socket.close_write
-          socket.gets
-        ensure
-          socket.close if socket
-        end
-      end
+      socket = TCPSocket.open(server[:host], server[:port])
+      socket.puts message
+      socket.close_write
+      socket.gets
+    ensure
+      socket.close if socket
     end
 
     def _parse_servers(servers = [])

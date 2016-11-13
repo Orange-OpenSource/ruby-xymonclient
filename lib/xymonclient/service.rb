@@ -1,41 +1,24 @@
 require 'erb'
 require 'xymonclient'
+require 'xymonclient/helpers'
 require 'xymonclient/serviceitem'
-
-##
-# Class container for isolating context for ERB templating
-class ERBContext
-  def initialize(hash)
-    hash.each_pair do |key, value|
-      instance_variable_set('@' + key.to_s, value)
-    end
-  end
-
-  def get_binding
-    binding
-  end
-end
 
 module XymonClient
   ##
   # Manage a Service, can contains multiple items to monitor
-  class Service
+  class Service < XymonClient::Client
     attr_reader :name
     attr_accessor :status
     attr_reader :details
-    # rubocop:disable LineLength
     DEFAULT_DETAILS_TEMPLATE = 'Generated at <%= @timestamp %> ' \
-      'for <%= @lifetime %> \n\n<%= @header %>\n\n' \
+      "for <%= @lifetime %> \n<%= @header %>\n" \
       '<% @items.each do |item| %>' \
-      '&<%= item[\'status\'] %> <%= item[\'label\'] %>: <%= item[\'value\'] %>\n' \
-      '<% end %>\n' \
-      '<%= @footer %>'.freeze
-    # rubocop:enable LineLength
+      "&<%= item['status'] %> <%= item['label'] %>: <%= item['value'] %>\n" \
+      "<% end %>\n" \
+      "<%= @footer %>\n".freeze
 
-    def initialize(client, config)
-      raise NotXymonClientInstance \
-        unless client.instance_of?(XymonClient::Client)
-      @client = client
+    def initialize(servers, config)
+      super(servers)
       @info = { 'items' => {} }
       update_config(config)
     end
@@ -58,6 +41,7 @@ module XymonClient
       else
         _update_items_config(config)
       end
+      @info['purple_item_status'] = config.fetch('purple_item_status', 'red')
       @info['status'] = @info.fetch('status', config.fetch('status', 'purple'))
     end
 
@@ -66,13 +50,15 @@ module XymonClient
       @info['items'][name].value = value
     end
 
-    def send
-      @client.status(@host, @name, @status, @details, @lifetime)
-    end
-
     def status
-      return 'clear' unless @enabled
-      items_status = @items.map { |item| item.info['status'] }
+      return 'clear' unless @info['enabled']
+      items_status = @info['items'].map do |_key, value|
+        if value.info['status'] == 'purple'
+          @info['purple_item_status']
+        else
+          value.info['status']
+        end
+      end
       @info['status'] = unless items_status.empty?
                           if items_status.include?('red')
                             'red'
@@ -83,19 +69,43 @@ module XymonClient
                             'green'
                           end
                         end
-      @info['status']
+      details = _details
+      super(
+        @info['host'],
+        @info['name'],
+        @info['status'],
+        details,
+        @info['lifetime']
+      )
+      [@info['status'], details]
     end
 
-    def details
+    def enable
+      super(@info['host'], @info['name'])
+    end
+
+    def disable(duration, message)
+      super(@info['host'], @info['name'], duration, message)
+    end
+
+    def board(fields = [])
+      super(@info['host'], @info['name'], fields)
+    end
+
+    def ack(duration, message)
+      super(@info['host'], @info['name'], duration, message)
+    end
+
+    private
+
+    def _details
       @info['timestamp'] = Time.now
       context = @info.reject { |key, _value| key == 'items' }
       context['items'] = @info['items'].map { |_key, value| value.info }
       ERB.new(@info['details_template']).result(
-        ERBContext.new(context).get_binding
+        XymonClient::ERBContext.new(context).context
       )
     end
-
-    private
 
     def _create_serviceitem(config)
       case config.fetch('type', '')

@@ -8,9 +8,6 @@ module XymonClient
   class InvalidServer < StandardError
   end
 
-  class InvalidStatus < StandardError
-  end
-
   class InvalidDuration < StandardError
   end
 
@@ -18,9 +15,6 @@ module XymonClient
   end
 
   class InvalidHost < StandardError
-  end
-
-  class InvalidService < StandardError
   end
 
   class InvalidServiceItem < StandardError
