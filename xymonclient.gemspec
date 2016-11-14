@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://github.com/dchauviere/ruby-xymonclient'
   spec.licenses      = ['Apache-2.0']
 
-  spec.files         = Dir['lib/   *.rb'] + Dir['bin/*'] + Dir['spec/**/*.rb'] \
+  spec.files         = Dir['lib/**/*.rb'] + Dir['bin/*'] + Dir['spec/**/*.rb'] \
                        + Dir['[A-Z]*'] + Dir['*.md']
   spec.bindir        = 'bin'
   spec.require_paths = ['lib']
