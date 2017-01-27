@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.summary       = 'Xymon client library'
   spec.description   = 'Interact with Xymon server, send status, ack, ' \
                        'enable/disable'
-  spec.homepage      = 'https://github.com/dchauviere/ruby-xymonclient'
+  spec.homepage      = 'https://github.com/Orange-OpenSource/ruby-xymonclient'
   spec.licenses      = ['Apache-2.0']
 
   spec.files         = Dir['lib/**/*.rb'] + Dir['bin/*'] + Dir['spec/**/*.rb'] \
@@ -20,7 +20,6 @@ Gem::Specification.new do |spec|
   spec.bindir        = 'bin'
   spec.require_paths = ['lib']
 
-  spec.add_development_dependency 'bundler', '~> 1.13'
   spec.add_development_dependency 'rake', '~> 10.0'
   spec.add_development_dependency 'rspec', '~> 3.0'
   spec.add_development_dependency 'rubocop', '= 0.40'
