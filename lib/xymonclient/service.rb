@@ -45,9 +45,10 @@ module XymonClient
       @info['status'] = @info.fetch('status', config.fetch('status', 'purple'))
     end
 
-    def update_item(name, value)
+    def update_item(name, value, attrs = {})
       raise InvalidServiceItem unless @info['items'].include?(name)
       @info['items'][name].value = value
+      @info['items'][name].attributes = attrs
     end
 
     def status

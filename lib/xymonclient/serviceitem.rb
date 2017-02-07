@@ -6,6 +6,7 @@ module XymonClient
   # Manage an item to monitor
   class ServiceItem
     attr_accessor :value
+    attr_accessor :attributes
     attr_reader :info
 
     def initialize(config)
@@ -17,7 +18,8 @@ module XymonClient
         'enabled' => config.fetch('enabled', true),
         'status' => 'purple',
         'lifetime' => config.fetch('lifetime', '30m'),
-        'time' => Time.at(0)
+        'time' => Time.at(0),
+        'attributes' => config.fetch('attributes', {})
       }
     end
 
@@ -29,6 +31,14 @@ module XymonClient
 
     def value
       @info['value']
+    end
+
+    def attributes=(attrs)
+      @info['attributes'] = attrs
+    end
+
+    def attributes
+      @info['attributes']
     end
 
     def status
