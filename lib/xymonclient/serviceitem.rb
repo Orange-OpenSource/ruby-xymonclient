@@ -6,43 +6,57 @@ module XymonClient
   # Manage an item to monitor
   class ServiceItem
     attr_accessor :value
-    attr_reader :info
+    attr_accessor :attributes
+    attr_accessor :enabled
+    attr_accessor :description
+    attr_accessor :lifetime
+    attr_accessor :label
+    attr_reader :status
+    attr_reader :time
 
     def initialize(config)
       raise InvalidServiceItemName if config.fetch('label', '') == ''
-      @info = {
-        'label' => config['label'],
-        'type' => config['type'],
-        'description' => config.fetch('description', ''),
-        'enabled' => config.fetch('enabled', true),
-        'status' => 'purple',
-        'lifetime' => config.fetch('lifetime', '30m'),
-        'time' => Time.at(0)
-      }
+      @label = config['label']
+      @description = config.fetch('description', '')
+      @enabled = config.fetch('enabled', true)
+      @lifetime = config.fetch('lifetime', '30m')
+      @time = Time.at(0)
+      @threshold = config.fetch('threshold', {})
+      @attributes = config.fetch('attributes', {})
     end
 
     def value=(value)
-      @info['value'] = value
-      @info['time'] = Time.now
+      @value = value
+      @time = Time.now
       status
     end
 
-    def value
-      @info['value']
-    end
-
     def status
-      @info['status'] = \
-        if !@info['enabled']
+      @status = \
+        if !@enabled
           'clear'
-        elsif Time.now - @info['time'] > \
-              XymonClient.timestring_to_time(@info['lifetime'])
+        elsif Time.now - @time > \
+              XymonClient.timestring_to_time(@lifetime)
           'purple'
-        elsif XymonClient.valid_status?(@info['value'])
-          @info['value']
+        elsif XymonClient.valid_status?(@value)
+          @value
         else
           'red'
         end
+    end
+
+    def context
+      {
+        'label' => @label,
+        'description' => @description,
+        'enabled' => @enabled,
+        'lifetime' => @lifetime,
+        'timestamp' => @timestamp,
+        'threshold' => @threshold,
+        'attributes' => @attributes,
+        'status' => @status,
+        'value' => @value
+      }
     end
   end
 
@@ -50,23 +64,22 @@ module XymonClient
   class ServiceItemGauge < ServiceItem
     def initialize(config)
       super(config)
-      @info['threshold'] = config.fetch('threshold', {})
-      @info['nan_status'] = config.fetch('nan_status', 'green')
+      @nan_status = config.fetch('nan_status', 'green')
     end
 
     def status
-      @info['status'] = \
-        if !@info['enabled']
+      @status = \
+        if !@enabled
           'clear'
-        elsif Time.now - @info['time'] > \
-              XymonClient.timestring_to_time(@info['lifetime'])
+        elsif Time.now - @time > \
+              XymonClient.timestring_to_time(@lifetime)
           'purple'
         elsif value.instance_of?(Float) && value.nan?
-          @info['threshold'].fetch('nan_status', 'red')
-        elsif @info['threshold'].key?('critical') && \
+          @threshold.fetch('nan_status', 'red')
+        elsif @threshold.key?('critical') && \
               _threshold_reached?('critical')
           'red'
-        elsif @info['threshold'].key?('warning') && \
+        elsif @threshold.key?('warning') && \
               _threshold_reached?('warning')
           'yellow'
         else
@@ -74,40 +87,41 @@ module XymonClient
         end
     end
 
+    def context
+      {
+        'nan_status' => @nan_status
+      }.merge(super)
+    end
+
     private
 
     def _threshold_reached?(threshold)
-      case @info['threshold'].fetch('order', '<')
+      case @threshold.fetch('order', '<')
       when '<'
-        @info['value'] < @info['threshold'][threshold]
+        @value < @threshold[threshold]
       when '>'
-        @info['value'] > @info['threshold'][threshold]
+        @value > @threshold[threshold]
       when '<='
-        @info['value'] <= @info['threshold'][threshold]
+        @value <= @threshold[threshold]
       when '>='
-        @info['value'] >= @info['threshold'][threshold]
+        @value >= @threshold[threshold]
       end
     end
   end
 
   ##
   class ServiceItemString < ServiceItem
-    def initialize(config)
-      super(config)
-      @info['threshold'] = config.fetch('threshold', {})
-    end
-
     def status
-      @info['status'] = \
-        if !@info['enabled']
+      @status = \
+        if !@enabled
           'clear'
-        elsif Time.now - @info['time'] > \
-              XymonClient.timestring_to_time(@info['lifetime'])
+        elsif Time.now - @time > \
+              XymonClient.timestring_to_time(@lifetime)
           'purple'
-        elsif @info['threshold'].key?('critical') && \
+        elsif @threshold.key?('critical') && \
               _threshold_reached?('critical')
           'red'
-        elsif @info['threshold'].key?('warning') && \
+        elsif @threshold.key?('warning') && \
               _threshold_reached?('warning')
           'yellow'
         else
@@ -118,14 +132,14 @@ module XymonClient
     private
 
     def _threshold_reached?(threshold)
-      inclusive = @info['threshold'].fetch('inclusive', true)
-      values = @info['value']
+      inclusive = @threshold.fetch('inclusive', true)
+      values = @value
       if values.instance_of?(Array)
         value_is_included = values.any? do |value|
-          @info['threshold'][threshold].include?(value)
+          @threshold[threshold].include?(value)
         end
       else
-        value_is_included = @info['threshold'][threshold].include?(values)
+        value_is_included = @threshold[threshold].include?(values)
       end
       (inclusive && value_is_included) || (!inclusive && !value_is_included)
     end
