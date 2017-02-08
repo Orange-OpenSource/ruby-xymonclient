@@ -129,7 +129,8 @@ module XymonClient
       end
       # add new items
       items.each do |item_name, item_config|
-        @items[item_name] = _create_serviceitem(item_config)
+        @items[item_name] = _create_serviceitem(item_config) \
+          unless @items.keys.include?(item_name)
       end
     end
   end

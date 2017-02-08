@@ -16,13 +16,10 @@ module XymonClient
 
     def initialize(config)
       raise InvalidServiceItemName if config.fetch('label', '') == ''
-      @label = config['label']
-      @description = config.fetch('description', '')
-      @enabled = config.fetch('enabled', true)
-      @lifetime = config.fetch('lifetime', '30m')
       @time = Time.at(0)
       @threshold = config.fetch('threshold', {})
       @attributes = config.fetch('attributes', {})
+      update_config(config)
     end
 
     def value=(value)
@@ -45,6 +42,16 @@ module XymonClient
         end
     end
 
+    def update_config(config)
+      raise InvalidServiceItemName if config.fetch('label', '') == ''
+      @label = config['label']
+      @description = config.fetch('description', '')
+      @enabled = config.fetch('enabled', true)
+      @lifetime = config.fetch('lifetime', '30m')
+      @threshold = config.fetch('threshold', {})
+      @attributes.merge!(config.fetch('attributes', {}))
+    end
+
     def context
       {
         'label' => @label,
@@ -64,7 +71,7 @@ module XymonClient
   class ServiceItemGauge < ServiceItem
     def initialize(config)
       super(config)
-      @nan_status = config.fetch('nan_status', 'green')
+      update_config(config)
     end
 
     def status
@@ -85,6 +92,11 @@ module XymonClient
         else
           'green'
         end
+    end
+
+    def update_config(config)
+      super(config)
+      @nan_status = config.fetch('nan_status', 'green')
     end
 
     def context
