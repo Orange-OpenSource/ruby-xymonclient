@@ -44,6 +44,48 @@ describe XymonClient do
       # rubocop:enable LineLength
     end
 
+    context 'update config' do
+      let(:service_update) do
+        {
+          'name' => 'service1',
+          'host' => 'myhost',
+          'items' => {
+            'ITEM1' => {
+              'label' => 'Gauge Item 1',
+              'type' => 'gauge',
+              'threshold' => {
+                'order' => '<',
+                'critical' => 2,
+                'warning' => 10,
+                'nan_status' => 'red'
+              }
+            },
+            'ITEM3' => {
+              'label' => 'String Item 3',
+              'type' => 'string',
+              'threshold' => {
+                'inclusive' => false,
+                'critical' => ['all is KO !']
+              }
+            }
+          }
+        }
+      end
+
+      it 'should update config with new item and delete olds' do
+        service.update_item('ITEM1', 3)
+        service.update_item('ITEM2', 'all is Ok !')
+        service.update_config(service_update)
+        allow(service).to receive(:_send) { '' }
+        # rubocop:disable LineLength
+        expect(service.status[0]).to eq('red')
+        expect(service.status[1]).to match(
+          /Generated at .* for 30m \n&yellow Gauge Item 1: 3\n&purple String Item 3: \n\n/
+        )
+        # rubocop:enable LineLength
+      end
+    end
+
     context 'use attributes' do
       let(:service) do
         XymonClient::Service.new(
