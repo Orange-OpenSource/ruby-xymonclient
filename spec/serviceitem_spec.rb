@@ -50,7 +50,17 @@ describe XymonClient do
 
   describe XymonClient::ServiceItemString do
     describe 'inclusive' do
-      let(:config) { { 'label' => 'Item 1', 'threshold' => {'inclusive' => true, 'critical' => ['foo'], 'warning' => ['bar']}} }
+      let(:config) do
+        {
+          'label' => 'Item 1',
+          'threshold' => {
+            'inclusive' => true,
+            'critical' => ['foo'],
+            'warning' => ['bar']
+          }
+        }
+      end
+
       it 'should return red status when value is included in critical threshold' do
         item = described_class.new(config)
         item.value = 'foo'
@@ -71,7 +81,17 @@ describe XymonClient do
     end
 
     describe 'exclusive' do
-      let(:config) { { 'label' => 'Item 1', 'threshold' => {'inclusive' => false, 'critical' => ['foo'], 'warning' => ['bar']}} }
+      let(:config) do
+        {
+          'label' => 'Item 1',
+          'threshold' => {
+            'inclusive' => false,
+            'critical' => ['foo'],
+            'warning' => ['bar']
+          }
+        }
+      end
+
       it 'should return red status when "foo" is not included in critical threshold' do
         item = described_class.new(config)
         item.value = ['bar']
@@ -86,7 +106,7 @@ describe XymonClient do
 
       it 'should return green status when all values are included in critical/warning threshold' do
         item = described_class.new(config)
-        item.value = ['foo', 'bar']
+        item.value = %w(foo bar)
         expect(item.status).to eq('green')
       end
     end

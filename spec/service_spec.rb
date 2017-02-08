@@ -9,8 +9,6 @@ describe XymonClient do
         ['localhost'],
         'name' => 'service1',
         'host' => 'myhost',
-        'header' => 'A sample header',
-        'footer' => 'A sample footer',
         'items' => {
           'ITEM1' => {
             'label' => 'Gauge Item 1',
@@ -41,7 +39,7 @@ describe XymonClient do
       # rubocop:disable LineLength
       expect(service.status[0]).to eq('red')
       expect(service.status[1]).to match(
-        /Generated at .* for 30m \nA sample header\n&red Gauge Item 1: 3\n&green String Item 2: all is Ok !\n\nA sample footer/
+        /Generated at .* for 30m \n&red Gauge Item 1: 3\n&green String Item 2: all is Ok !\n\n/
       )
       # rubocop:enable LineLength
     end

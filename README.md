@@ -46,8 +46,6 @@ require 'xymonclient/service'
 service = XymonClient::Service.new(['localhost:1984'],
   'name' => 'service1',
   'host' => 'myhost',
-  'header' => 'A sample header',
-  'footer' => 'A sample footer',
   'items' => {
     'ITEM1' => {
       'label' => 'Gauge Item 1',
