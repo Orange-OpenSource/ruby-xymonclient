@@ -13,5 +13,35 @@ describe XymonClient do
       )
       client.status('my.host', 'myservice', 'green', 'all is good')
     end
+
+    it 'could not send a status to some servers' do
+      times_called = 0
+      allow(client).to receive(:_send) do
+        times_called += 1
+        raise Errno::ECONNREFUSED if times_called == 2
+      end
+      expect do
+        client.status('my.host', 'myservice', 'green', 'all is good')
+      end.to raise_error(XymonClient::PartialSendFailure)
+    end
+
+    it 'could not send a status to all servers' do
+      allow(client).to receive(:_send).and_raise Errno::ECONNREFUSED
+      expect do
+        client.status('my.host', 'myservice', 'green', 'all is good')
+      end.to raise_error(XymonClient::SendFailure)
+    end
+
+    it 'retry sending a status to some servers' do
+      client.retry_count = 2
+      times_called = 0
+      allow(client).to receive(:_send) do
+        times_called += 1
+        raise Errno::ECONNREFUSED if times_called == 1
+      end
+      expect do
+        client.status('my.host', 'myservice', 'green', 'all is good')
+      end.not_to raise_error
+    end
   end
 end

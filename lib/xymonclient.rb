@@ -12,14 +12,18 @@ module XymonClient
   #            (port default to 1984)
   class Client
     attr_reader :servers
+    attr_accessor :retry_count
+    attr_accessor :retry_interval
 
-    def initialize(servers = [])
+    def initialize(servers = [], retry_count = 0, retry_interval = 5)
       @servers = \
         if servers.empty?
           XymonClient::ServerDiscovery.find_from_file
         else
           _parse_servers(servers)
         end
+      @retry_count = retry_count
+      @retry_interval = retry_interval
     end
 
     def status(host, service, status, message, lifetime = '30m')
@@ -65,21 +69,40 @@ module XymonClient
         unless XymonClient.valid_duration?(duration)
       cookies = board(host, service, ['cookie'])
       @servers.each do |server|
+        next if cookies[server].to_i == -1
         _send(
           server,
           "xymondack #{cookies[server].to_i} #{duration} #{message}"
-        ) if cookies[server].to_i != -1
+        )
       end
     end
 
     private
 
     def _send_to_all(message)
-      @servers.each { |server| _send(server, message) }
+      fail_srv = []
+      send_result = true
+      @servers.each do |server|
+        retry_count = 0
+        begin
+          _send(server, message)
+        rescue
+          if retry_count < @retry_count || @retry_count == -1
+            sleep @retry_interval
+            retry_count += 1
+            retry
+          else
+            send_result = false
+            fail_srv << server
+          end
+        end
+      end
+      raise XymonClient::SendFailure if fail_srv.count == @servers.count
+      raise XymonClient::PartialSendFailure, fail_srv \
+        if (1..@servers.count - 1).cover?(fail_srv.count)
     end
 
     def _send(server, message)
-      # TODO: validate response from all servers ( and retry ?)
       socket = TCPSocket.open(server[:host], server[:port])
       socket.puts message
       socket.close_write
