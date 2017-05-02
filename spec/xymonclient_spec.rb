@@ -15,6 +15,7 @@ describe XymonClient do
     end
 
     it 'could not send a status to some servers' do
+      client.retry_count = 0
       times_called = 0
       allow(client).to receive(:_send) do
         times_called += 1

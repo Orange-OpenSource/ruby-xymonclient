@@ -15,7 +15,7 @@ module XymonClient
     attr_accessor :retry_count
     attr_accessor :retry_interval
 
-    def initialize(servers = [], retry_count = 0, retry_interval = 5)
+    def initialize(servers = [], retry_count = 3, retry_interval = 5)
       @servers = \
         if servers.empty?
           XymonClient::ServerDiscovery.find_from_file
