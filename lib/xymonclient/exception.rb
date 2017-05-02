@@ -19,4 +19,10 @@ module XymonClient
 
   class InvalidServiceItem < StandardError
   end
+
+  class PartialSendFailure < StandardError
+  end
+
+  class SendFailure < StandardError
+  end
 end
