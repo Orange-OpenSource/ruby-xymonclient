@@ -20,9 +20,9 @@ Gem::Specification.new do |spec|
   spec.bindir        = 'bin'
   spec.require_paths = ['lib']
 
-  spec.add_development_dependency 'rake', '~> 10.0'
-  spec.add_development_dependency 'rspec', '~> 3.0'
-  spec.add_development_dependency 'rubocop', '= 0.40'
-  spec.add_development_dependency 'simplecov', '~> 0.12.0'
+  spec.add_development_dependency 'rake', '~> 13.0'
+  spec.add_development_dependency 'rspec', '~> 3.9'
+  spec.add_development_dependency 'rubocop', '~> 0.92'
+  spec.add_development_dependency 'simplecov', '~> 0.19'
   spec.add_development_dependency 'codeclimate-test-reporter', '~> 1.0'
 end
