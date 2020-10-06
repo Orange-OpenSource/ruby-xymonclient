@@ -1,5 +1,0 @@
-language: ruby
-rvm:
-  - jruby-1.7.25
-
-after_script: bundle exec codeclimate-test-reporter
