@@ -1,7 +1,6 @@
 [![Gem Version](https://badge.fury.io/rb/xymonclient.svg)](https://badge.fury.io/rb/xymonclient)
-[![Build Status](https://travis-ci.org/Orange-OpenSource/ruby-xymonclient.svg?branch=master)](https://travis-ci.org/Orange-OpenSource/ruby-xymonclient)
-[![Code Climate](https://codeclimate.com/github/Orange-OpenSource/ruby-xymonclient/badges/gpa.svg)](https://codeclimate.com/github/Orange-OpenSource/ruby-xymonclient)
-<a href="https://codeclimate.com/github/Orange-OpenSource/ruby-xymonclient/coverage"><img src="https://codeclimate.com/github/Orange-OpenSource/ruby-xymonclient/badges/coverage.svg" /></a>
+![tests](https://github.com/Orange-OpenSource/ruby-xymonclient/workflows/tests/badge.svg)
+
 # XymonClient
 
 XymonClient is a ruby library for interacting with Xymon

@@ -1,4 +1,4 @@
-name: Execute Tests
+name: tests
 
 on: [push, pull_request]
 
@@ -12,7 +12,6 @@ jobs:
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: jruby-9.2.13.0
-        # bundler: none    
     - name: Prepare dependencies
       run: |
         bundle config set system 'true'
